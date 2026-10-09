@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Andrise äpp</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0b6e8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#18202a;--muted:#5b6672;--line:#d5dbe2;--accent:#0b6e8a;--accent-ink:#fff;
+--otsus:#c2410c;--vahe:#2f6fd0;--valmis:#2d7a4a;--warn:#b8860b}
+@media (prefers-color-scheme:dark){:root{--bg:#11161c;--panel:#19212a;--ink:#e6ebf0;--muted:#97a3af;--line:#2c3743;--accent:#4fb7d4;--accent-ink:#0b1217;
+--otsus:#f07a45;--vahe:#6aa0f0;--valmis:#6cc58f;--warn:#e0b84a;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;background:var(--bg);padding:12px 16px 8px;display:flex;align-items:center;gap:8px;z-index:2}
+header h1{font-size:20px;margin:0;flex:1}
+main{padding:0 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 10px}
+.msg .top{display:flex;gap:8px;align-items:baseline}
+.tag{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:6px;color:#fff;background:var(--muted)}
+.tag.OTSUS{background:var(--otsus)}.tag.VAHEETAPP{background:var(--vahe)}.tag.VALMIS{background:var(--valmis)}.tag.MEIL,.tag.TEST{background:var(--warn)}
+.msg .t{font-weight:600;flex:1}
+.msg .when{color:var(--muted);font-size:12px;white-space:nowrap}
+.msg .b{margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.msg a.go{display:inline-block;margin-top:6px;color:var(--accent);font-weight:600;text-decoration:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:4px 12px;font:inherit;font-size:13px}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.main{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;width:100%}
+input{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
+.muted{color:var(--muted);font-size:13px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;padding:10px 0}
+nav button.on{color:var(--accent);font-weight:600}
+.view{display:none}.view.on{display:block}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+.status{font-size:13px;margin-top:8px}
+.links a{display:block;padding:12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<header><h1 id="h">Teavitused</h1><button class="chip" id="refresh" aria-label="Värskenda">↻</button></header>
+
+<section class="view on" id="v-inbox">
+  <div class="chips" id="filters"></div>
+  <main id="list"></main>
+</section>
+
+<section class="view" id="v-links"><main class="links" id="links"></main></section>
+
+<section class="view" id="v-settings"><main>
+  <div class="card">
+    <label for="topic">Teavituste kood (ntfy teema)</label>
+    <input id="topic" autocomplete="off" spellcheck="false" placeholder="andris-claude-…">
+    <p class="muted">Salajane. Hoitakse ainult selles telefonis.</p>
+  </div>
+  <div class="card">
+    <button class="main" id="enable">Luba push-teavitused</button>
+    <div class="status" id="pushStatus"></div>
+    <p class="muted" id="iosHint" hidden>iPhone: ava Safaris → Jaga → „Lisa avakuvale“, siis ava äpp avakuvalt ja vajuta uuesti.</p>
+  </div>
+  <p class="muted">Versioon <span id="ver"></span></p>
+</main></section>
+
+<nav>
+  <button class="on" data-v="inbox">Teavitused</button>
+  <button data-v="links">Lingid</button>
+  <button data-v="settings">Seaded</button>
+</nav>
+
+<script>
+const VERSION = "1.0.0";
+const VAPID = "BM6HVlnasgMagsmlnud5jPzjY20I3MH2-GVLZqSRVsUsiCDNw8g4MQuhpySfI4LuaKAtWkNAZLDNNlbesr5a59M";
+const LINKS = [
+  ["Claude projekt", "https://claude.ai/code/project/chan_01ByReUsVQCBbC4joUAAWVmn"],
+  ["Gmail", "https://mail.google.com/mail/u/0/#inbox"],
+  ["Google Calendar", "https://calendar.google.com/"],
+  ["ClickUp", "https://app.clickup.com/"],
+];
+const TAGS = ["OTSUS","VAHEETAPP","VALMIS","MEIL"];
+const $ = s => document.querySelector(s);
+const ls = { get(k,d){try{return localStorage.getItem(k)??d}catch{return d}}, set(k,v){try{localStorage.setItem(k,v)}catch{}} };
+let filter = ls.get("filter","");
+
+// --- IndexedDB (sama mis sw.js-is) ---
+const db = new Promise((ok,no)=>{const r=indexedDB.open("app",1);r.onupgradeneeded=()=>r.result.createObjectStore("msgs",{keyPath:"id"});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+async function all(){const d=await db;return new Promise(ok=>{const q=d.transaction("msgs").objectStore("msgs").getAll();q.onsuccess=()=>ok(q.result)})}
+async function putMany(ms){const d=await db;const tx=d.transaction("msgs","readwrite");ms.forEach(m=>tx.objectStore("msgs").put(m));return new Promise(ok=>tx.oncomplete=ok)}
+
+// ntfy pealkiri "[Claude] OTSUS: tekst" → {tag,title}
+function parseTitle(t=""){t=t.replace(/^\[Claude\]\s*/,"");
+  if(/^❗|^⏰/.test(t)) return {tag:"MEIL",title:t.replace(/^(❗|⏰)\s*/,"")};
+  const m=t.match(/^([A-ZÕÄÖÜ]+):\s*(.*)$/);return m?{tag:m[1],title:m[2]}:{tag:"INFO",title:t}}
+
+async function pullNtfy(){
+  const topic=ls.get("topic","");if(!topic)return;
+  try{
+    const r=await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}/json?poll=1&since=12h`);
+    const ms=(await r.text()).trim().split("\n").filter(Boolean).map(l=>JSON.parse(l)).filter(m=>m.event==="message")
+      .map(m=>({id:"n-"+m.id,...parseTitle(m.title),body:m.message||"",url:m.click||(m.message.match(/https?:\/\/\S+/)||[])[0],time:m.time}));
+    await putMany(ms);
+  }catch(e){console.warn(e)}
+}
+
+function ago(s){const d=Date.now()/1000-s;if(d<3600)return Math.max(1,Math.round(d/60))+" min";if(d<86400)return Math.round(d/3600)+" h";
+  return new Date(s*1000).toLocaleDateString("et-EE",{day:"numeric",month:"short"})}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function render(){
+  let ms=(await all()).sort((a,b)=>b.time-a.time);
+  // sama teade nii push'ist kui ntfy-st → näita ühte
+  const seen=new Set();ms=ms.filter(m=>{const k=m.tag+m.title+Math.round(m.time/300);if(seen.has(k))return false;seen.add(k);return true});
+  $("#filters").innerHTML=["",...TAGS].map(t=>`<button class="chip ${t===filter?"on":""}" data-f="${t}">${t||"Kõik"}</button>`).join("");
+  const shown=filter?ms.filter(m=>m.tag===filter):ms;
+  $("#list").innerHTML=shown.length?shown.map(m=>`<div class="card msg"><div class="top"><span class="tag ${esc(m.tag)}">${esc(m.tag)}</span>
+    <span class="t">${esc(m.title)}</span><span class="when">${ago(m.time)}</span></div>
+    ${m.body?`<div class="b">${esc(m.body)}</div>`:""}${m.url?`<a class="go" href="${esc(m.url)}" target="_blank" rel="noopener">Ava →</a>`:""}</div>`).join("")
+    :`<div class="empty">${ls.get("topic","")?"Teavitusi pole.":"Sisesta Seadetes teavituste kood."}</div>`;
+}
+$("#filters").onclick=e=>{const f=e.target.dataset.f;if(f===undefined)return;filter=f;ls.set("filter",f);render()};
+$("#refresh").onclick=async()=>{await pullNtfy();render()};
+
+// --- vaated ---
+document.querySelector("nav").onclick=e=>{const v=e.target.dataset.v;if(!v)return;
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===e.target));
+  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
+  $("#h").textContent=e.target.textContent};
+$("#links").innerHTML=LINKS.map(([n,u])=>`<a href="${u}" target="_blank" rel="noopener">${n} →</a>`).join("");
+
+// --- seaded + push ---
+$("#ver").textContent=VERSION;
+$("#topic").value=ls.get("topic","");
+$("#topic").onchange=async e=>{ls.set("topic",e.target.value.trim());await pullNtfy();render()};
+const isIOS=/iphone|ipad/i.test(navigator.userAgent), standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+if(isIOS&&!standalone)$("#iosHint").hidden=false;
+
+function u8(b64){const s=atob((b64+"=".repeat((4-b64.length%4)%4)).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0))}
+async function pushState(){
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)){$("#pushStatus").textContent="See brauser ei toeta push'i.";return}
+  const reg=await navigator.serviceWorker.ready, sub=await reg.pushManager.getSubscription();
+  $("#pushStatus").textContent=sub?"✓ Push on sees.":(Notification.permission==="denied"?"Teavitused on brauseris keelatud.":"Push on väljas.");
+  $("#enable").textContent=sub?"Saada tellimus uuesti":"Luba push-teavitused";
+}
+$("#enable").onclick=async()=>{
+  const topic=ls.get("topic","");if(!topic){$("#pushStatus").textContent="Sisesta enne kood.";return}
+  try{
+    if(await Notification.requestPermission()!=="granted"){pushState();return}
+    const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID)});
+    const body=JSON.stringify({...sub.toJSON(),device:(isIOS?"iPhone":/android/i.test(navigator.userAgent)?"Android":"muu")+" "+new Date().toISOString().slice(0,10)});
+    const r=await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}-app`,{method:"POST",body});
+    $("#pushStatus").textContent=r.ok?"✓ Push on sees. Claude registreerib telefoni järgmise teatega.":"Tellimuse saatmine ebaõnnestus ("+r.status+").";
+  }catch(e){$("#pushStatus").textContent="Viga: "+e.message}
+};
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(pushState);
+  navigator.serviceWorker.addEventListener("message",render);
+}
+(async()=>{await render();await pullNtfy();render()})();
+document.addEventListener("visibilitychange",async()=>{if(!document.hidden){await pullNtfy();render()}});
+</script>
+</body>
+</html>
