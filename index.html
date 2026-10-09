@@ -7,165 +7,428 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#0b6e8a">
+<meta name="theme-color" content="#f2f3f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-:root{--bg:#eef1f4;--panel:#fff;--ink:#18202a;--muted:#5b6672;--line:#d5dbe2;--accent:#0b6e8a;--accent-ink:#fff;
---otsus:#c2410c;--vahe:#2f6fd0;--valmis:#2d7a4a;--warn:#b8860b}
-@media (prefers-color-scheme:dark){:root{--bg:#11161c;--panel:#19212a;--ink:#e6ebf0;--muted:#97a3af;--line:#2c3743;--accent:#4fb7d4;--accent-ink:#0b1217;
---otsus:#f07a45;--vahe:#6aa0f0;--valmis:#6cc58f;--warn:#e0b84a;color-scheme:dark}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
-padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
-header{position:sticky;top:0;background:var(--bg);padding:12px 16px 8px;display:flex;align-items:center;gap:8px;z-index:2}
-header h1{font-size:20px;margin:0;flex:1}
-main{padding:0 16px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 10px}
-.msg .top{display:flex;gap:8px;align-items:baseline}
-.tag{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:6px;color:#fff;background:var(--muted)}
-.tag.OTSUS{background:var(--otsus)}.tag.VAHEETAPP{background:var(--vahe)}.tag.VALMIS{background:var(--valmis)}.tag.MEIL,.tag.TEST{background:var(--warn)}
-.msg .t{font-weight:600;flex:1}
-.msg .when{color:var(--muted);font-size:12px;white-space:nowrap}
-.msg .b{margin-top:4px;white-space:pre-wrap;word-break:break-word}
-.msg a.go{display:inline-block;margin-top:6px;color:var(--accent);font-weight:600;text-decoration:none}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px}
-.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:4px 12px;font:inherit;font-size:13px}
-.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-button.main{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;width:100%}
-input{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit}
-label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
-.muted{color:var(--muted);font-size:13px}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;padding:10px 0}
-nav button.on{color:var(--accent);font-weight:600}
-.view{display:none}.view.on{display:block}
-.empty{text-align:center;color:var(--muted);padding:40px 0}
-.status{font-size:13px;margin-top:8px}
-.links a{display:block;padding:12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);text-decoration:none;font-weight:600}
+/* Layout: iOS-like. Blurred sticky header with large title, 4 tabs (Täna, Nädal, Ülesanded, Teated) in a bottom bar,
+   settings as a bottom sheet. Views cross-fade/slide; cards press-scale. Data = encrypted data.json from Claude. */
+:root{
+  --bg:#f2f3f7; --card:#fff; --ink:#111418; --muted:#6b7280; --faint:#9aa1ab; --line:rgba(17,20,24,.08);
+  --accent:#0a84ff; --accent-soft:rgba(10,132,255,.12); --danger:#e5484d; --warn:#f59e0b; --ok:#22a06b;
+  --c-kool:#3b82f6; --c-koos:#8b5cf6; --c-pers:#10b981; --c-juh:#f97316; --c-insuk:#eab308; --c-sooj:#14b8a6;
+  --t-otsus:#e5484d; --t-vahe:#3b82f6; --t-valmis:#22a06b; --t-meil:#f59e0b; --t-info:#6b7280;
+  --r:16px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1117; --card:#161b22; --ink:#e8ecf1; --muted:#9aa4b2; --faint:#6b7480; --line:rgba(255,255,255,.08);
+  --accent:#4ea1ff; --accent-soft:rgba(78,161,255,.16); --shadow:none; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-size:15px;line-height:1.4;padding-bottom:calc(84px + env(safe-area-inset-bottom));overscroll-behavior-y:contain}
+button{font:inherit;color:inherit}
+a{color:inherit}
+
+header{position:sticky;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 10px) 20px 10px;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid transparent;transition:border-color .2s}
+header.scrolled{border-bottom-color:var(--line)}
+.hrow{display:flex;align-items:flex-end;gap:10px}
+.hrow h1{flex:1;margin:0;font-size:32px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:13px;margin-top:2px;min-height:18px}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:0;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center;transition:transform .15s var(--ease)}
+.icon-btn:active{transform:scale(.9)}
+.icon-btn svg{width:18px;height:18px}
+.spin svg{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+main{padding:4px 16px 0}
+.view{display:none}
+.view.on{display:block;animation:in .28s var(--ease)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.view.on{animation:none}}
+
+h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 4px 8px;display:flex;justify-content:space-between;align-items:center}
+h2 b{font-weight:600;color:var(--faint)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.card + .card{margin-top:10px}
+.row{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;text-decoration:none;position:relative;transition:background .15s}
+.row + .row{border-top:1px solid var(--line)}
+a.row:active,button.row:active{background:var(--line)}
+.row .bar{width:4px;align-self:stretch;border-radius:2px;flex:none}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.row .m{color:var(--muted);font-size:13px;margin-top:1px}
+.row .r{color:var(--muted);font-size:13px;white-space:nowrap;text-align:right}
+.time{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);width:46px;flex:none;padding-top:1px}
+.time b{display:block;color:var(--ink);font-weight:600;font-size:15px}
+.empty{color:var(--muted);text-align:center;padding:22px 12px;font-size:14px}
+
+/* hero "next up" */
+.hero{padding:16px;background:linear-gradient(135deg,var(--accent),#5e5ce6);color:#fff;border-radius:20px;box-shadow:0 8px 24px rgba(10,132,255,.25)}
+.hero .k{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.hero .t{font-size:20px;font-weight:700;margin:4px 0 2px}
+.hero .m{opacity:.9;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.stat{background:var(--card);border-radius:14px;padding:12px;box-shadow:var(--shadow);border:0;text-align:left;transition:transform .15s var(--ease)}
+.stat:active{transform:scale(.96)}
+.stat b{display:block;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.alert b{color:var(--danger)}
+
+/* week */
+.wnav{display:flex;align-items:center;gap:8px;margin:6px 0 10px}
+.wnav .lbl{flex:1;font-weight:600}
+.pill{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:999px;padding:6px 12px;font-size:14px;transition:transform .15s var(--ease)}
+.pill:active{transform:scale(.94)}
+.pill.on{background:var(--accent);color:#fff}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:var(--card);border-radius:var(--r);padding:6px;box-shadow:var(--shadow)}
+.days button{border:0;background:none;border-radius:12px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .2s,color .2s}
+.days small{font-size:11px;color:var(--muted);font-weight:600}
+.days span{font-size:17px;font-weight:600;width:32px;height:32px;display:grid;place-items:center;border-radius:50%}
+.days i{display:flex;gap:2px;height:5px}
+.days i u{width:5px;height:5px;border-radius:50%;display:block}
+.days button.today span{color:var(--accent)}
+.days button.sel span{background:var(--accent);color:#fff}
+.days button.sel small{color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin:10px 4px 0}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend u{width:8px;height:8px;border-radius:50%;display:block}
+.clash{background:color-mix(in srgb,var(--danger) 12%,var(--card));color:var(--danger);font-size:13px;padding:10px 14px;border-radius:12px;margin-top:10px;font-weight:500}
+.chipx{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:1px}
+.chipx.w{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+
+/* tasks */
+.seg{display:flex;background:var(--line);border-radius:10px;padding:2px;margin:6px 0 4px}
+.seg button{flex:1;border:0;background:none;border-radius:8px;padding:7px 0;font-size:13px;font-weight:600;color:var(--muted);transition:all .2s var(--ease)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;margin-top:5px;border:2px solid var(--faint)}
+.dot.prog{border-color:var(--accent);background:linear-gradient(90deg,var(--accent) 50%,transparent 50%)}
+.dot.stale{border-color:var(--warn)}
+
+/* notifications */
+.filters{display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.tag{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:6px;color:#fff;background:var(--t-info);flex:none;margin-top:2px}
+.tag.OTSUS{background:var(--t-otsus)}.tag.VAHEETAPP{background:var(--t-vahe)}.tag.VALMIS{background:var(--t-valmis)}.tag.MEIL{background:var(--t-meil)}
+.body{white-space:pre-wrap;word-break:break-word;color:var(--muted);font-size:14px;margin-top:2px}
+
+/* markdown overview */
+.md{padding:4px 16px 14px;font-size:14px}
+.md h3,.md h4{margin:14px 0 6px;font-size:15px}
+.md ul{padding-left:18px;margin:6px 0}
+.md li{margin:3px 0}
+.md table{border-collapse:collapse;font-size:13px;width:100%}
+.md td,.md th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+.md .tbl{overflow-x:auto}
+.md code{font-size:12px;background:var(--line);padding:1px 4px;border-radius:4px}
+
+/* skeleton */
+.sk{height:58px;border-radius:12px;margin:8px 0;background:linear-gradient(90deg,var(--line) 25%,color-mix(in srgb,var(--line) 40%,transparent) 50%,var(--line) 75%);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* tab bar */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  background:color-mix(in srgb,var(--card) 80%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--line)}
+nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:10.5px;font-weight:600;color:var(--faint);position:relative;transition:color .2s}
+nav button svg{width:24px;height:24px;transition:transform .25s var(--ease)}
+nav button.on{color:var(--accent)}
+nav button.on svg{transform:translateY(-1px) scale(1.06)}
+nav button:active svg{transform:scale(.88)}
+.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;line-height:16px;text-align:center}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:9}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--bg);border-radius:22px 22px 0 0;padding:8px 16px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .35s var(--ease);max-height:88vh;overflow:auto}
+.sheet:not(.on){visibility:hidden;transition:transform .35s var(--ease),visibility 0s .35s}
+.sheet.on{transform:none}
+.fade{animation:in .22s var(--ease)}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sheet h3{margin:0 0 4px;font-size:20px}
+label{display:block;font-size:13px;color:var(--muted);margin:14px 4px 6px}
+input{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--card);color:var(--ink);font:inherit;box-shadow:var(--shadow)}
+.btn{width:100%;border:0;border-radius:12px;padding:13px;font-weight:600;background:var(--accent);color:#fff;margin-top:12px;transition:transform .15s var(--ease),opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
+.hint{font-size:13px;color:var(--muted);margin:8px 4px 0}
+.links a{display:flex;justify-content:space-between}
+
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:11;transition:all .3s var(--ease);pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
-<header><h1 id="h">Teavitused</h1><button class="chip" id="refresh" aria-label="Värskenda">↻</button></header>
-
-<section class="view on" id="v-inbox">
-  <div class="chips" id="filters"></div>
-  <main id="list"></main>
-</section>
-
-<section class="view" id="v-links"><main class="links" id="links"></main></section>
-
-<section class="view" id="v-settings"><main>
-  <div class="card">
-    <label for="topic">Teavituste kood (ntfy teema)</label>
-    <input id="topic" autocomplete="off" spellcheck="false" placeholder="andris-claude-…">
-    <p class="muted">Salajane. Hoitakse ainult selles telefonis.</p>
+<header id="hdr">
+  <div class="hrow">
+    <h1 id="h">Täna</h1>
+    <button class="icon-btn" id="refresh" aria-label="Värskenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg></button>
+    <button class="icon-btn" id="gear" aria-label="Seaded"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
-  <div class="card">
-    <button class="main" id="enable">Luba push-teavitused</button>
-    <div class="status" id="pushStatus"></div>
-    <p class="muted" id="iosHint" hidden>iPhone: ava Safaris → Jaga → „Lisa avakuvale“, siis ava äpp avakuvalt ja vajuta uuesti.</p>
-  </div>
-  <p class="muted">Versioon <span id="ver"></span></p>
-</main></section>
+  <div class="sub" id="sub"></div>
+</header>
 
-<nav>
-  <button class="on" data-v="inbox">Teavitused</button>
-  <button data-v="links">Lingid</button>
-  <button data-v="settings">Seaded</button>
+<main>
+  <section class="view on" id="v-tana"></section>
+  <section class="view" id="v-nadal"></section>
+  <section class="view" id="v-tood"></section>
+  <section class="view" id="v-teated"></section>
+</main>
+
+<nav id="tabs">
+  <button class="on" data-v="tana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Täna</button>
+  <button data-v="nadal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Nädal</button>
+  <button data-v="tood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11"/><circle cx="5" cy="18" r="1.3"/></svg>Ülesanded</button>
+  <button data-v="teated"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>Teated<span class="badge" id="badge" hidden></span></button>
 </nav>
 
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Seaded">
+  <div class="grab"></div>
+  <h3>Seaded</h3>
+  <label for="topic">Teavituste kood</label>
+  <input id="topic" autocomplete="off" spellcheck="false" placeholder="andris-claude-…">
+  <p class="hint">Avab ka sinu andmed (kalender, meil, ülesanded). Hoitakse ainult selles telefonis.</p>
+  <button class="btn" id="enable">Luba push-teavitused</button>
+  <p class="hint" id="pushStatus"></p>
+  <label>Lingid</label>
+  <div class="card links" id="links"></div>
+  <p class="hint">Versioon <span id="ver"></span></p>
+</div>
+<div class="toast" id="toast"></div>
+
 <script>
-const VERSION = "1.0.1";
+const VERSION = "2.0.0";
 const VAPID = "BM6HVlnasgMagsmlnud5jPzjY20I3MH2-GVLZqSRVsUsiCDNw8g4MQuhpySfI4LuaKAtWkNAZLDNNlbesr5a59M";
 const LINKS = [
-  ["Nädala dashboard", "https://claude.ai/artifact/5pzjCyn5wF1tJ3CCjiJXs9"],
+  ["Nädala dashboard (claude.ai)", "https://claude.ai/artifact/5pzjCyn5wF1tJ3CCjiJXs9"],
   ["Claude projekt", "https://claude.ai/code/project/chan_01ByReUsVQCBbC4joUAAWVmn"],
   ["Gmail", "https://mail.google.com/mail/u/0/#inbox"],
   ["Google Calendar", "https://calendar.google.com/"],
   ["ClickUp", "https://app.clickup.com/"],
 ];
+const CAL = {kool:["Kool","--c-kool"],koos:["Koosolekud","--c-koos"],pers:["Isiklik","--c-pers"],juh:["Juhatus","--c-juh"],insuk:["INSÜK","--c-insuk"],sooj:["Soojakud","--c-sooj"]};
 const TAGS = ["OTSUS","VAHEETAPP","VALMIS","MEIL"];
+const DN = ["E","T","K","N","R","L","P"], DL = ["Esmaspäev","Teisipäev","Kolmapäev","Neljapäev","Reede","Laupäev","Pühapäev"];
+const MON = ["jaan","veebr","märts","apr","mai","juuni","juuli","aug","sept","okt","nov","dets"];
 const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls = { get(k,d){try{return localStorage.getItem(k)??d}catch{return d}}, set(k,v){try{localStorage.setItem(k,v)}catch{}} };
-let filter = ls.get("filter","");
+const col = c => `var(${(CAL[c]||["",'--t-info'])[1]})`;
+let loadErr = "", D = null, view = ls.get("view","tana"), sel = null, taskSeg = ls.get("seg","prog"), filter = ls.get("filter","");
 
-// --- IndexedDB (sama mis sw.js-is) ---
+function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove("on"),1800)}
+
+// --- dates (local strings "YYYY-MM-DD" / "YYYY-MM-DDTHH:MM", Tallinn = phone time) ---
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addD = (s,n) => {const d=new Date(s+"T12:00");d.setDate(d.getDate()+n);return ymd(d)};
+const monday = s => {const d=new Date(s+"T12:00");return addD(s,-((d.getDay()+6)%7))};
+const dow = s => (new Date(s+"T12:00").getDay()+6)%7;
+const hm = s => s.slice(11,16);
+const dm = s => {const [,m,d]=s.split("-");return `${+d}. ${MON[+m-1]}`};
+const today = () => ymd(new Date());
+function isoWeek(s){const d=new Date(s+"T12:00");d.setDate(d.getDate()-dow(s)+3);const j=new Date(d.getFullYear(),0,4);return 1+Math.round(((d-j)/864e5-3+(j.getDay()+6)%7)/7)}
+function ago(sec){const d=Date.now()/1000-sec;if(d<60)return"just";if(d<3600)return Math.round(d/60)+" min";if(d<86400)return Math.round(d/3600)+" h";return Math.round(d/86400)+" p"}
+
+// --- events ---
+function evs(){ if(!D) return [];
+  return D.events.map(([c,s,e,t,l])=>({c,s,e,t,l,all:s.length===10})); }
+function onDay(day){
+  return evs().filter(e=>e.all ? (day>=e.s && day<e.e) : (e.s.slice(0,10)===day || (e.s.slice(0,10)<day && e.e.slice(0,10)>=day)))
+    .sort((a,b)=>(b.all-a.all)||a.s.localeCompare(b.s));
+}
+function clashes(list){
+  const t=list.filter(e=>!e.all).sort((a,b)=>a.s.localeCompare(b.s)), out=new Set();
+  for(let i=0;i<t.length;i++)for(let j=i+1;j<t.length;j++){if(t[j].s>=t[i].e)break;out.add(t[i]);out.add(t[j])}
+  return out;
+}
+function evRow(e,day,cl){
+  const multi = !e.all && e.s.slice(0,10)!==e.e.slice(0,10);
+  const time = e.all ? `<div class="time"><b>•</b>päev</div>` :
+    `<div class="time"><b>${multi&&e.s.slice(0,10)<day?"…":hm(e.s)}</b>${multi&&e.e.slice(0,10)>day?"…":hm(e.e)}</div>`;
+  return `<div class="row">${time}<i class="bar" style="background:${col(e.c)}"></i><div class="main"><div class="t">${esc(e.t)}${cl&&cl.has(e)?'<span class="chipx w">kattub</span>':""}</div>
+    <div class="m">${esc([CAL[e.c]?.[0],e.l].filter(Boolean).join(" · "))}</div></div></div>`;
+}
+
+// --- views ---
+function vTana(){
+  const el=$("#v-tana");
+  if(!D){el.innerHTML=noData();return}
+  const d=today(), list=onDay(d), now=new Date(), nowS=`${d}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const next = evs().filter(e=>!e.all && e.e>nowS).sort((a,b)=>a.s.localeCompare(b.s))[0];
+  const tomorrow = onDay(addD(d,1));
+  const pay = D.mail.filter(m=>m[3]==="makse"||m[3]==="arve").length;
+  const prog = D.tasks.filter(t=>/progress/i.test(t[1])).length;
+  const unread = notesUnseen();
+  let h="";
+  if(next){
+    const nd=next.s.slice(0,10), when = nd===d ? (next.s<=nowS?`käib, lõpp ${hm(next.e)}`:`täna ${hm(next.s)}`) : nd===addD(d,1)?`homme ${hm(next.s)}`:`${DL[dow(nd)].toLowerCase()} ${hm(next.s)}`;
+    h+=`<div class="hero"><div class="k">Järgmine · ${esc(when)}</div><div class="t">${esc(next.t)}</div><div class="m">${esc([CAL[next.c]?.[0],next.l].filter(Boolean).join(" · "))}</div></div>`;
+  }
+  h+=`<div class="stats">
+    <button class="stat${unread?" alert":""}" data-go="teated"><b>${unread}</b><span>uut teadet</span></button>
+    <button class="stat${pay?" alert":""}" data-go="mail"><b>${pay}</b><span>arvet/makset</span></button>
+    <button class="stat" data-go="tood"><b>${prog}</b><span>pooleli</span></button></div>`;
+  if(D.urgent?.length) h+=`<h2>Vajab vastust</h2><div class="card">${D.urgent.map(u=>`<a class="row" href="https://mail.google.com/mail/u/0/#inbox/${esc(u.id)}" target="_blank" rel="noopener"><span class="tag MEIL">MEIL</span><div class="main"><div class="t">${esc(u.subject)}</div><div class="m">${esc(u.from)} · ${esc(u.why||"")}</div></div></a>`).join("")}</div>`;
+  const cl=clashes(list);
+  h+=`<h2>Täna · ${DL[dow(d)]} ${dm(d)}<b>${list.length||""}</b></h2><div class="card">${list.length?list.map(e=>evRow(e,d,cl)).join(""):'<div class="empty">Vaba päev 🎉</div>'}</div>`;
+  h+=`<h2>Homme<b>${tomorrow.length||""}</b></h2><div class="card">${tomorrow.length?tomorrow.map(e=>evRow(e,addD(d,1))).join(""):'<div class="empty">Vaba</div>'}</div>`;
+  h+=`<h2 id="mail">Kirjad, arved, piletid</h2><div class="card">${D.mail.map(([dt,from,subj,kind,id])=>`<a class="row" href="https://mail.google.com/mail/u/0/#inbox/${esc(id)}" target="_blank" rel="noopener"><div class="main"><div class="t">${esc(subj)}</div><div class="m">${esc(from)}</div></div><div class="r">${dm(dt)}<br><span class="chipx${kind==="makse"?" w":""}">${esc(kind)}</span></div></a>`).join("")||'<div class="empty">Midagi ei oota</div>'}</div>`;
+  if(D.weekly?.length) h+=`<h2>Claude'i nädalaülevaade<b>${esc(D.weekly[0].name)}</b></h2><div class="card md">${md(D.weekly[0].md)}</div>`;
+  el.innerHTML=h;
+}
+
+function vNadal(){
+  const el=$("#v-nadal");
+  if(!D){el.innerHTML=noData();return}
+  sel = sel || today();
+  const ws=monday(sel), days=[...Array(7)].map((_,i)=>addD(ws,i)), t=today();
+  const inRange = s => s>=D.range[0] && s<D.range[1];
+  const strip = days.map(d=>{const l=onDay(d);const dots=[...new Set(l.map(e=>e.c))].slice(0,3).map(c=>`<u style="background:${col(c)}"></u>`).join("");
+    return `<button data-day="${d}" class="${d===t?"today":""} ${d===sel?"sel":""}"><small>${DN[dow(d)]}</small><span>${+d.slice(8)}</span><i>${dots}</i></button>`}).join("");
+  const list=onDay(sel), cl=clashes(list);
+  const weekCl=days.reduce((n,d)=>n+(clashes(onDay(d)).size?1:0),0);
+  el.innerHTML=`<div class="wnav"><button class="pill" data-w="-1" aria-label="Eelmine nädal">‹</button><div class="lbl">Nädal ${isoWeek(ws)} · ${dm(ws)} – ${dm(addD(ws,6))}</div>
+      <button class="pill${monday(t)===ws?" on":""}" data-w="0">Täna</button><button class="pill" data-w="1" aria-label="Järgmine nädal">›</button></div>
+    <div class="days">${strip}</div>
+    ${weekCl?`<div class="clash">⚠ ${weekCl} päeval kattuvad sündmused</div>`:""}
+    <h2>${DL[dow(sel)]} ${dm(sel)}<b>${list.length||""}</b></h2>
+    <div class="card fade">${!inRange(sel)?'<div class="empty">Selle nädala andmeid veel pole. Claude uuendab neid regulaarselt.</div>':list.length?list.map(e=>evRow(e,sel,cl)).join(""):'<div class="empty">Vaba</div>'}</div>
+    <div class="legend">${Object.values(CAL).map(([n,v])=>`<span><u style="background:var(${v})"></u>${n}</span>`).join("")}</div>`;
+}
+
+function vTood(){
+  const el=$("#v-tood");
+  if(!D){el.innerHTML=noData();return}
+  const now=Date.now(), old=now-14*864e5;
+  const prog=D.tasks.filter(t=>/progress/i.test(t[1])), open=D.tasks.filter(t=>!/progress/i.test(t[1]));
+  const segs=[["prog","Pooleli",prog],["open","Avatud",open]];
+  const cur=segs.find(s=>s[0]===taskSeg)||segs[0];
+  el.innerHTML=`<div class="seg">${segs.map(([k,n,l])=>`<button data-seg="${k}" class="${k===cur[0]?"on":""}">${n} · ${l.length}</button>`).join("")}</div>
+    <div class="card" style="margin-top:10px">${cur[2].map(([n,st,id,up])=>`<a class="row" href="https://app.clickup.com/t/${esc(id)}" target="_blank" rel="noopener">
+      <i class="dot${/progress/i.test(st)?" prog":""}${up<old?" stale":""}"></i><div class="main"><div class="t">${esc(n)}</div></div>
+      <div class="r">${up<old?'<span class="chipx w">seisab</span>':ago(up/1000)}</div></a>`).join("")||'<div class="empty">Pole</div>'}</div>
+    <p class="hint">ClickUpi list „Andris“. Muuda ClickUpis, Claude uuendab siia.</p>`;
+}
+
+// --- notifications (IndexedDB + ntfy 12 h) ---
 const db = new Promise((ok,no)=>{const r=indexedDB.open("app",1);r.onupgradeneeded=()=>r.result.createObjectStore("msgs",{keyPath:"id"});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
-async function all(){const d=await db;return new Promise(ok=>{const q=d.transaction("msgs").objectStore("msgs").getAll();q.onsuccess=()=>ok(q.result)})}
+async function allMsgs(){const d=await db;return new Promise(ok=>{const q=d.transaction("msgs").objectStore("msgs").getAll();q.onsuccess=()=>ok(q.result)})}
 async function putMany(ms){const d=await db;const tx=d.transaction("msgs","readwrite");ms.forEach(m=>tx.objectStore("msgs").put(m));return new Promise(ok=>tx.oncomplete=ok)}
-
-// ntfy pealkiri "[Claude] OTSUS: tekst" → {tag,title}
-function parseTitle(t=""){t=t.replace(/^\[Claude\]\s*/,"");
-  if(/^❗|^⏰/.test(t)) return {tag:"MEIL",title:t.replace(/^(❗|⏰)\s*/,"")};
+function parseTitle(t=""){t=t.replace(/^\[Claude\]\s*/,"");if(/^❗|^⏰/.test(t))return{tag:"MEIL",title:t.replace(/^(❗|⏰)\s*/,"")};
   const m=t.match(/^([A-ZÕÄÖÜ]+):\s*(.*)$/);return m?{tag:m[1],title:m[2]}:{tag:"INFO",title:t}}
-
-async function pullNtfy(){
-  const topic=ls.get("topic","");if(!topic)return;
-  try{
-    const r=await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}/json?poll=1&since=12h`);
+async function pullNtfy(){const topic=ls.get("topic","");if(!topic)return;
+  try{const r=await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}/json?poll=1&since=12h`);
     const ms=(await r.text()).trim().split("\n").filter(Boolean).map(l=>JSON.parse(l)).filter(m=>m.event==="message")
       .map(m=>({id:"n-"+m.id,...parseTitle(m.title),body:m.message||"",url:m.click||(m.message.match(/https?:\/\/\S+/)||[])[0],time:m.time}));
-    await putMany(ms);
-  }catch(e){console.warn(e)}
+    await putMany(ms)}catch(e){}}
+let MSGS=[];
+async function loadMsgs(){let ms=(await allMsgs()).sort((a,b)=>b.time-a.time);const seen=new Set();
+  MSGS=ms.filter(m=>{const k=m.tag+m.title+Math.round(m.time/300);if(seen.has(k))return false;seen.add(k);return true})}
+function notesUnseen(){const last=+ls.get("seenAt","0");return MSGS.filter(m=>m.time>last).length}
+function vTeated(){
+  const shown=filter?MSGS.filter(m=>m.tag===filter):MSGS;
+  $("#v-teated").innerHTML=`<div class="filters">${["",...TAGS].map(t=>`<button class="pill${t===filter?" on":""}" data-f="${t}">${t||"Kõik"}</button>`).join("")}</div>
+    <div class="card" style="margin-top:10px">${shown.map(m=>`<${m.url?`a href="${esc(m.url)}" target="_blank" rel="noopener"`:"div"} class="row"><span class="tag ${esc(m.tag)}">${esc(m.tag)}</span>
+      <div class="main"><div class="t">${esc(m.title)}</div>${m.body?`<div class="body">${esc(m.body)}</div>`:""}</div><div class="r">${ago(m.time)}</div></${m.url?"a":"div"}>`).join("")
+      ||`<div class="empty">${ls.get("topic","")?"Teateid pole":"Sisesta seadetes kood"}</div>`}</div>`;
+}
+function badge(){const n=notesUnseen();$("#badge").hidden=!n||view==="teated";$("#badge").textContent=n>9?"9+":n}
+
+// --- markdown (weekly overview) ---
+function md(src){const L=src.replace(/\r/g,"").split("\n");let o=[],i=0;const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`(.+?)`/g,"<code>$1</code>");
+  while(i<L.length){const l=L[i];
+    if(/^\s*\|/.test(l)){const rows=[];while(i<L.length&&/^\s*\|/.test(L[i]))rows.push(L[i++]);const cells=r=>r.trim().replace(/^\||\|$/g,"").split("|").map(c=>c.trim());
+      o.push(`<div class="tbl"><table>${rows.filter(r=>!/^\s*\|[\s\-:|]+\|\s*$/.test(r)).map((r,k)=>`<tr>${cells(r).map(c=>k?`<td>${inl(c)}</td>`:`<th>${inl(c)}</th>`).join("")}</tr>`).join("")}</table></div>`);continue}
+    if(/^\s*-\s+/.test(l)){const it=[];while(i<L.length&&/^\s*-\s+/.test(L[i]))it.push(L[i++].replace(/^\s*-\s+/,""));o.push(`<ul>${it.map(t=>`<li>${inl(t)}</li>`).join("")}</ul>`);continue}
+    const h=l.match(/^(#{1,3})\s+(.*)/);if(h){if(h[1].length>1)o.push(`<h${h[1].length+1}>${inl(h[2])}</h${h[1].length+1}>`);i++;continue}
+    if(l.trim())o.push(`<p>${inl(l)}</p>`);i++}
+  return o.join("")}
+
+// --- encrypted data.json ---
+function noData(){return loadErr?`<div class="empty">${esc(loadErr)}. Vajuta ↻ või kontrolli koodi seadetes.</div>`:ls.get("topic","")?`<div class="sk"></div><div class="sk"></div><div class="sk"></div>`:`<div class="empty">Sisesta seadetes (⚙) teavituste kood, siis näed oma kalendrit, kirju ja ülesandeid.</div>`}
+const ub = s => Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function loadData(){
+  const topic=ls.get("topic","");if(!topic)return;
+  try{
+    loadErr="";
+    const r=await fetch("data.json",{cache:"no-store"});if(!r.ok)throw new Error(r.status);
+    const x=await r.json();
+    const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(topic),"PBKDF2",false,["deriveKey"]);
+    const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:ub(x.salt),iterations:x.iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+    D=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:ub(x.iv)},key,ub(x.ct))));
+  }catch(e){loadErr=e.name==="OperationError"?"Vale kood":"Andmeid ei saanud laadida";toast(loadErr)}
 }
 
-function ago(s){const d=Date.now()/1000-s;if(d<3600)return Math.max(1,Math.round(d/60))+" min";if(d<86400)return Math.round(d/3600)+" h";
-  return new Date(s*1000).toLocaleDateString("et-EE",{day:"numeric",month:"short"})}
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-
-async function render(){
-  let ms=(await all()).sort((a,b)=>b.time-a.time);
-  // sama teade nii push'ist kui ntfy-st → näita ühte
-  const seen=new Set();ms=ms.filter(m=>{const k=m.tag+m.title+Math.round(m.time/300);if(seen.has(k))return false;seen.add(k);return true});
-  $("#filters").innerHTML=["",...TAGS].map(t=>`<button class="chip ${t===filter?"on":""}" data-f="${t}">${t||"Kõik"}</button>`).join("");
-  const shown=filter?ms.filter(m=>m.tag===filter):ms;
-  $("#list").innerHTML=shown.length?shown.map(m=>`<div class="card msg"><div class="top"><span class="tag ${esc(m.tag)}">${esc(m.tag)}</span>
-    <span class="t">${esc(m.title)}</span><span class="when">${ago(m.time)}</span></div>
-    ${m.body?`<div class="b">${esc(m.body)}</div>`:""}${m.url?`<a class="go" href="${esc(m.url)}" target="_blank" rel="noopener">Ava →</a>`:""}</div>`).join("")
-    :`<div class="empty">${ls.get("topic","")?"Teavitusi pole.":"Sisesta Seadetes teavituste kood."}</div>`;
+// --- shell ---
+const TITLES={tana:"Täna",nadal:"Nädal",tood:"Ülesanded",teated:"Teated"};
+function render(){
+  $("#h").textContent=TITLES[view];
+  $("#sub").textContent=D?`Uuendatud ${ago(D.generated)} tagasi`:"";
+  ({tana:vTana,nadal:vNadal,tood:vTood,teated:vTeated})[view]();
+  badge();
 }
-$("#filters").onclick=e=>{const f=e.target.dataset.f;if(f===undefined)return;filter=f;ls.set("filter",f);render()};
-$("#refresh").onclick=async()=>{await pullNtfy();render()};
-
-// --- vaated ---
-document.querySelector("nav").onclick=e=>{const v=e.target.dataset.v;if(!v)return;
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===e.target));
+function go(v){if(v===view){scrollTo({top:0,behavior:"smooth"});return}
+  view=v;ls.set("view",v);if(v==="teated")ls.set("seenAt",String(Math.floor(Date.now()/1000)));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
-  $("#h").textContent=e.target.textContent};
-$("#links").innerHTML=LINKS.map(([n,u])=>`<a href="${u}" target="_blank" rel="noopener">${n} →</a>`).join("");
+  scrollTo({top:0});render()}
+$("#tabs").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.v)};
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-go]");if(g){g.dataset.go==="mail"?$("#mail")?.scrollIntoView({behavior:"smooth",block:"start"}):go(g.dataset.go);return}
+  const d=e.target.closest("[data-day]");if(d){sel=d.dataset.day;vNadal();return}
+  const w=e.target.closest("[data-w]");if(w){sel=+w.dataset.w?addD(sel||today(),7*w.dataset.w):today();vNadal();return}
+  const s=e.target.closest("[data-seg]");if(s){taskSeg=s.dataset.seg;ls.set("seg",taskSeg);vTood();return}
+  const f=e.target.closest("[data-f]");if(f){filter=f.dataset.f;ls.set("filter",filter);vTeated();return}
+});
+addEventListener("scroll",()=>$("#hdr").classList.toggle("scrolled",scrollY>4),{passive:true});
+// swipe days in week view
+let sx=null;$("#v-nadal").addEventListener("touchstart",e=>{sx=e.touches[0].clientX},{passive:true});
+$("#v-nadal").addEventListener("touchend",e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>60){sel=addD(sel||today(),dx<0?1:-1);vNadal()}});
 
-// --- seaded + push ---
+async function refresh(){const b=$("#refresh");b.classList.add("spin");await Promise.all([loadData(),pullNtfy()]);await loadMsgs();render();b.classList.remove("spin")}
+$("#refresh").onclick=async()=>{await refresh();toast("Värskendatud")};
+
+// sheet
+const sheet=on=>{$("#sheet").classList.toggle("on",on);$("#scrim").classList.toggle("on",on)};
+$("#gear").onclick=()=>{sheet(true);pushState()};$("#scrim").onclick=()=>sheet(false);
+addEventListener("keydown",e=>{if(e.key==="Escape")sheet(false)});
+// swipe sheet down to close
+let sy=null;$("#sheet").addEventListener("touchstart",e=>{sy=$("#sheet").scrollTop?null:e.touches[0].clientY},{passive:true});
+$("#sheet").addEventListener("touchend",e=>{if(sy!=null&&e.changedTouches[0].clientY-sy>70)sheet(false);sy=null});
+$("#links").innerHTML=LINKS.map(([n,u])=>`<a class="row" href="${u}" target="_blank" rel="noopener"><div class="main"><div class="t">${n}</div></div><div class="r">›</div></a>`).join("");
 $("#ver").textContent=VERSION;
 $("#topic").value=ls.get("topic","");
-$("#topic").onchange=async e=>{ls.set("topic",e.target.value.trim());await pullNtfy();render()};
-const isIOS=/iphone|ipad/i.test(navigator.userAgent), standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
-if(isIOS&&!standalone)$("#iosHint").hidden=false;
+$("#topic").onchange=async e=>{ls.set("topic",e.target.value.trim());await refresh()};
 
+// push
+const isIOS=/iphone|ipad/i.test(navigator.userAgent);
 function u8(b64){const s=atob((b64+"=".repeat((4-b64.length%4)%4)).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0))}
 async function pushState(){
-  if(!("serviceWorker" in navigator)||!("PushManager" in window)){$("#pushStatus").textContent="See brauser ei toeta push'i.";return}
-  const reg=await navigator.serviceWorker.ready, sub=await reg.pushManager.getSubscription();
-  $("#pushStatus").textContent=sub?"✓ Push on sees.":(Notification.permission==="denied"?"Teavitused on brauseris keelatud.":"Push on väljas.");
-  $("#enable").textContent=sub?"Saada tellimus uuesti":"Luba push-teavitused";
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)){$("#pushStatus").textContent=isIOS?"Ava äpp avakuvalt (Jaga → Lisa avakuvale).":"See brauser ei toeta push'i.";return}
+  const sub=await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+  $("#pushStatus").textContent=sub?"✓ Push on sees.":(Notification.permission==="denied"?"Teavitused on keelatud (iOS Seaded → Teavitused).":"Push on väljas.");
+  $("#enable").textContent=sub?"Registreeri telefon uuesti":"Luba push-teavitused";$("#enable").className=sub?"btn ghost":"btn";
 }
 $("#enable").onclick=async()=>{
   const topic=ls.get("topic","");if(!topic){$("#pushStatus").textContent="Sisesta enne kood.";return}
-  try{
-    if(await Notification.requestPermission()!=="granted"){pushState();return}
+  try{if(await Notification.requestPermission()!=="granted"){pushState();return}
     const reg=await navigator.serviceWorker.ready;
     const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID)});
-    const body=JSON.stringify({...sub.toJSON(),device:(isIOS?"iPhone":/android/i.test(navigator.userAgent)?"Android":"muu")+" "+new Date().toISOString().slice(0,10)});
+    const body=JSON.stringify({...sub.toJSON(),device:(isIOS?"iPhone":/android/i.test(navigator.userAgent)?"Android":"muu")+" "+today()});
     const r=await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}-app`,{method:"POST",body});
-    $("#pushStatus").textContent=r.ok?"✓ Push on sees. Claude registreerib telefoni järgmise teatega.":"Tellimuse saatmine ebaõnnestus ("+r.status+").";
-  }catch(e){$("#pushStatus").textContent="Viga: "+e.message}
-};
+    $("#pushStatus").textContent=r.ok?"✓ Push on sees.":"Saatmine ebaõnnestus ("+r.status+").";
+  }catch(e){$("#pushStatus").textContent="Viga: "+e.message}};
 
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js").then(pushState);
-  navigator.serviceWorker.addEventListener("message",render);
-}
-(async()=>{await render();await pullNtfy();render()})();
-document.addEventListener("visibilitychange",async()=>{if(!document.hidden){await pullNtfy();render()}});
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");navigator.serviceWorker.addEventListener("message",async()=>{await loadMsgs();render()})}
+document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===view));
+document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+view));
+(async()=>{await loadMsgs();render();await refresh()})();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
 </script>
 </body>
 </html>

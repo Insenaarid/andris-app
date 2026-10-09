@@ -1,5 +1,5 @@
 // Uuenduse jaoks muuda VERSION → telefon laeb uue versiooni automaatselt.
-const VERSION = "1.0.1";
+const VERSION = "2.0.0";
 const CACHE = "app-" + VERSION;
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
