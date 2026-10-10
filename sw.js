@@ -1,7 +1,7 @@
 // Uuenduse jaoks muuda VERSION → telefon laeb uue versiooni automaatselt.
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 const CACHE = "app-" + VERSION;
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "play.css", "news.js", "games.js", "words-et.json", "words-en.json"];
 
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); });
 self.addEventListener("activate", e => e.waitUntil((async () => {
