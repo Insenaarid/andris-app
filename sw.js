@@ -1,5 +1,5 @@
 // Uuenduse jaoks muuda VERSION → telefon laeb uue versiooni automaatselt.
-const VERSION = "2.1.0";
+const VERSION = "2.1.1";
 const CACHE = "app-" + VERSION;
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "play.css", "news.js", "games.js", "words-et.json", "words-en.json"];
 
@@ -11,7 +11,8 @@ self.addEventListener("activate", e => e.waitUntil((async () => {
 // Võrk enne, vahemälu siis kui võrku pole → uuendused jõuavad kohe kohale.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; })
+  // no-cache: alati küsi serverilt (ETag), muidu iOS hoiab vana versiooni kuni 10 min.
+  e.respondWith(fetch(new Request(e.request.url, { cache: "no-cache", credentials: "same-origin" })).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; })
     .catch(() => caches.match(e.request)));
 });
 
