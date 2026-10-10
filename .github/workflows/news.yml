@@ -1,0 +1,26 @@
+name: Uudised
+on:
+  schedule:
+    - cron: "17 4-21/2 * * *"   # iga 2 h, ~07–00 Tallinna aja järgi
+  workflow_dispatch:
+  push:
+    paths: ["tools/news.py", ".github/workflows/news.yml"]
+permissions:
+  contents: write
+concurrency: news
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/news.py news.json
+      - name: Commit
+        run: |
+          git config user.name "andris-app bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add news.json
+          git diff --cached --quiet && exit 0
+          git commit -qm "uudised $(date -u +%F\ %H:%M)"
+          for i in 1 2 3 4; do git pull -q --rebase origin "$GITHUB_REF_NAME" && git push -q origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep $((i*5)); done
+          exit 1
