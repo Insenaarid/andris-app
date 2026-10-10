@@ -34,12 +34,13 @@ FEEDS = [
     ("Ars Technica", "sci", "https://feeds.arstechnica.com/arstechnica/science"),
 ]
 
-ENERGY = re.compile(r"""\b(energ\w*|electric\w*|elektri\w*|elekter\w*|power\s?(grid|plant|station|line|price)s?|grid|
-    nuclear|tuuma\w*|wind\s?(farm|power|turbine)s?|tuul(e|i)\w*park\w*|tuuleenergia|offshore\swind|solar|päikese\w*|
-    photovolt\w*|battery|batteries|akupank\w*|hydrogen|vesinik\w*|renewable\w*|taastuv\w*|fossil|coal|gas\s?(price|pipeline)|
-    lng|oil\s?shale|põlevkiv\w*|elering|eesti\senergia|enefit|nord\s?pool|estlink|balticconnector|desynchroni[sz]\w*|
-    sünkroni\w*|transformer|substation|alajaam\w*|kilowatt\w*|megawatt\w*|gigawatt\w*|\bmw\b|\bgw\b|\btwh\b|\bmwh\b|
-    heat\s?pump|soojuspump\w*|kaugkütte?\w*|interconnector|blackout|elektrikatkestus\w*|decarboni[sz]\w*|emission\w*|heitme\w*)""",
+ENERGY = re.compile(r"""\b((?<!dark\s)(?<!directed\s)(?<!directed-)energy|energia\w*|energeetik\w*|electricity|electric\s?(grid|car|vehicle)s?|elektri\w*|elekter\w*|
+    power\s?(grid|plant|station|line|price|outage)s?|grid|nuclear\s?(power|plant|reactor|energy|fuel|waste)s?|reactors?|tuuma(jaam|energia|reaktor)\w*|
+    wind\s?(farm|power|turbine|park)s?|tuulepark\w*|tuuleenergia|offshore\swind|solar\s?(panel|power|farm|park|energy|cell|plant|pv|capacity)s?|
+    päikese(park|paneel|energia|jaam)\w*|photovolt\w*|battery|batteries|akupank\w*|hydrogen|vesinik\w*|renewable\w*|taastuv\w*|fossil\sfuels?|coal|
+    gas\s?(price|pipeline|supply)s?|lng|oil\s?shale|põlevkiv\w*|elering|eesti\senergia|enefit|nord\s?pool|estlink|balticconnector|desynchroni[sz]\w*|
+    sünkroni\w*|transformer|substation|alajaam\w*|kilowatt\w*|megawatt\w*|gigawatt\w*|\bmw\b|\bgw\b|\btwh\b|\bmwh\b|heat\s?pump|soojuspump\w*|
+    kaugkütte?\w*|interconnector|blackout|elektrikatkestus\w*|decarboni[sz]\w*|(carbon|co2|greenhouse)\s?emissions?|heitme\w*)""",
     re.I | re.X)
 
 KEEP_DAYS = 4
