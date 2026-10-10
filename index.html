@@ -208,7 +208,7 @@ input{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--
 <script src="news.js"></script>
 <script src="games.js"></script>
 <script>
-const VERSION = "2.1.0";
+const VERSION = "2.1.1";
 const VAPID = "BM6HVlnasgMagsmlnud5jPzjY20I3MH2-GVLZqSRVsUsiCDNw8g4MQuhpySfI4LuaKAtWkNAZLDNNlbesr5a59M";
 const LINKS = [
   ["Nädala dashboard (claude.ai)", "https://claude.ai/artifact/5pzjCyn5wF1tJ3CCjiJXs9"],
@@ -431,7 +431,10 @@ $("#enable").onclick=async()=>{
     $("#pushStatus").textContent=r.ok?"✓ Push on sees.":"Saatmine ebaõnnestus ("+r.status+").";
   }catch(e){$("#pushStatus").textContent="Viga: "+e.message}};
 
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");navigator.serviceWorker.addEventListener("message",async()=>{await loadMsgs();render()})}
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js",{updateViaCache:"none"});
+  // uus versioon → lae leht kohe uuesti (muidu jääb avatud äpp vanaks)
+  let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!reloaded&&navigator.serviceWorker.controller){reloaded=true;location.reload()}});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})});navigator.serviceWorker.addEventListener("message",async()=>{await loadMsgs();render()})}
 document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===view));
 document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+view));
 (async()=>{await loadMsgs();render();await refresh()})();
