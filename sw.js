@@ -1,5 +1,5 @@
 // Uuenduse jaoks muuda VERSION → telefon laeb uue versiooni automaatselt.
-const VERSION = "2.2.0";
+const VERSION = "2.2.1";
 const CACHE = "app-" + VERSION;
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "play.css", "news.js", "games.js", "words-et.json", "words-en.json"];
 
