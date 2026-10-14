@@ -100,6 +100,11 @@ a.row:active,button.row:active{background:var(--line)}
 .clash{background:color-mix(in srgb,var(--danger) 12%,var(--card));color:var(--danger);font-size:13px;padding:10px 14px;border-radius:12px;margin-top:10px;font-weight:500}
 .chipx{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:1px}
 .chipx.w{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+.chipx.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.row a.main{display:flex;gap:12px;text-decoration:none;color:inherit}
+.row.paid .main,.row.paid .r{opacity:.55}
+.paybtn{flex:none;align-self:center;font:inherit;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.paybtn.on{border-color:var(--ok);background:var(--ok);color:#fff}
 
 /* tasks */
 .seg{display:flex;background:var(--line);border-radius:10px;padding:2px;margin:6px 0 4px}
@@ -208,7 +213,7 @@ input{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--
 <script src="news.js"></script>
 <script src="games.js"></script>
 <script>
-const VERSION = "2.1.1";
+const VERSION = "2.2.0";
 const VAPID = "BM6HVlnasgMagsmlnud5jPzjY20I3MH2-GVLZqSRVsUsiCDNw8g4MQuhpySfI4LuaKAtWkNAZLDNNlbesr5a59M";
 const LINKS = [
   ["Nädala dashboard (claude.ai)", "https://claude.ai/artifact/5pzjCyn5wF1tJ3CCjiJXs9"],
@@ -226,6 +231,12 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const ls = { get(k,d){try{return localStorage.getItem(k)??d}catch{return d}}, set(k,v){try{localStorage.setItem(k,v)}catch{}} };
 const col = c => `var(${(CAL[c]||["",'--t-info'])[1]})`;
 let loadErr = "", D = null, view = ls.get("view","tana"), sel = null, taskSeg = ls.get("seg","prog"), filter = ls.get("filter","");
+
+// arved: D.paid (Claude märgib) + telefonis märgitud (ls "paid": id → 1/0, 0 = tagasi võetud)
+const isBill = k => k==="makse"||k==="arve";
+const paidLocal = () => {try{return JSON.parse(ls.get("paid","{}"))||{}}catch{return {}}};
+const isPaid = id => {const l=paidLocal();return id in l ? !!l[id] : (D?.paid||[]).includes(id)};
+function setPaid(id,v){const l=paidLocal();l[id]=v?1:0;ls.set("paid",JSON.stringify(l))}
 
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove("on"),1800)}
 
@@ -268,7 +279,7 @@ function vTana(){
   const d=today(), list=onDay(d), now=new Date(), nowS=`${d}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const next = evs().filter(e=>!e.all && e.e>nowS).sort((a,b)=>a.s.localeCompare(b.s))[0];
   const tomorrow = onDay(addD(d,1));
-  const pay = D.mail.filter(m=>m[3]==="makse"||m[3]==="arve").length;
+  const pay = D.mail.filter(m=>isBill(m[3])&&!isPaid(m[4])).length;
   const prog = D.tasks.filter(t=>/progress/i.test(t[1])).length;
   const unread = notesUnseen();
   let h="";
@@ -284,7 +295,14 @@ function vTana(){
   const cl=clashes(list);
   h+=`<h2>Täna · ${DL[dow(d)]} ${dm(d)}<b>${list.length||""}</b></h2><div class="card">${list.length?list.map(e=>evRow(e,d,cl)).join(""):'<div class="empty">Vaba päev 🎉</div>'}</div>`;
   h+=`<h2>Homme<b>${tomorrow.length||""}</b></h2><div class="card">${tomorrow.length?tomorrow.map(e=>evRow(e,addD(d,1))).join(""):'<div class="empty">Vaba</div>'}</div>`;
-  h+=`<h2 id="mail">Kirjad, arved, piletid</h2><div class="card">${D.mail.map(([dt,from,subj,kind,id])=>`<a class="row" href="https://mail.google.com/mail/u/0/#inbox/${esc(id)}" target="_blank" rel="noopener"><div class="main"><div class="t">${esc(subj)}</div><div class="m">${esc(from)}</div></div><div class="r">${dm(dt)}<br><span class="chipx${kind==="makse"?" w":""}">${esc(kind)}</span></div></a>`).join("")||'<div class="empty">Midagi ei oota</div>'}</div>`;
+  const mails=D.mail.map(m=>({m,p:isBill(m[3])&&isPaid(m[4])})).sort((a,b)=>a.p-b.p);
+  h+=`<h2 id="mail">Kirjad, arved, piletid</h2><div class="card">${mails.map(({m:[dt,from,subj,kind,id],p})=>{
+    const href=`https://mail.google.com/mail/u/0/#inbox/${esc(id)}`, chip=p?`<span class="chipx ok">makstud</span>`:`<span class="chipx${kind==="makse"?" w":""}">${esc(kind)}</span>`;
+    const body=`<div class="main"><div class="t">${esc(subj)}</div><div class="m">${esc(from)}</div></div><div class="r">${dm(dt)}<br>${chip}</div>`;
+    return isBill(kind)
+      ? `<div class="row${p?" paid":""}"><a class="main" href="${href}" target="_blank" rel="noopener">${body}</a><button class="paybtn${p?" on":""}" data-paid="${esc(id)}" aria-pressed="${p}">${p?"✓ Makstud":"Makstud"}</button></div>`
+      : `<a class="row" href="${href}" target="_blank" rel="noopener">${body}</a>`;
+  }).join("")||'<div class="empty">Midagi ei oota</div>'}</div>`;
   if(D.weekly?.length) h+=`<h2>Claude'i nädalaülevaade<b>${esc(D.weekly[0].name)}</b></h2><div class="card md">${md(D.weekly[0].md)}</div>`;
   el.innerHTML=h;
 }
@@ -386,6 +404,7 @@ function go(v){if(v===view){scrollTo({top:0,behavior:"smooth"});return}
   scrollTo({top:0});render()}
 $("#tabs").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.v)};
 document.addEventListener("click",e=>{
+  const pb=e.target.closest("[data-paid]");if(pb){const id=pb.dataset.paid,v=!isPaid(id);setPaid(id,v);vTana();toast(v?"Märgitud makstuks":"Märge eemaldatud");return}
   const g=e.target.closest("[data-go]");if(g){g.dataset.go==="mail"?$("#mail")?.scrollIntoView({behavior:"smooth",block:"start"}):go(g.dataset.go);return}
   const d=e.target.closest("[data-day]");if(d){sel=d.dataset.day;vNadal();return}
   const w=e.target.closest("[data-w]");if(w){sel=+w.dataset.w?addD(sel||today(),7*w.dataset.w):today();vNadal();return}
