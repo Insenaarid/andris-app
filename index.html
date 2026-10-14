@@ -28,12 +28,13 @@
   --bg:#0d1117; --card:#161b22; --ink:#e8ecf1; --muted:#9aa4b2; --faint:#6b7480; --line:rgba(255,255,255,.08);
   --accent:#4ea1ff; --accent-soft:rgba(78,161,255,.16); --shadow:none; color-scheme:dark}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink)}
-body{font-size:15px;line-height:1.4;padding-bottom:calc(84px + env(safe-area-inset-bottom));overscroll-behavior-y:contain}
+/* app-shell: lehekülg ise ei keri, kerib ainult <main>. Nii ei saa iOS PWA alumist riba (position:fixed) ekraani keskele nihutada. */
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink)}
+body{font-size:15px;line-height:1.4;display:flex;flex-direction:column}
 button{font:inherit;color:inherit}
 a{color:inherit}
 
-header{position:sticky;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 10px) 20px 10px;
+header{position:relative;flex:none;z-index:5;padding:calc(env(safe-area-inset-top) + 10px) 20px 10px;
   background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
   border-bottom:1px solid transparent;transition:border-color .2s}
 header.scrolled{border-bottom-color:var(--line)}
@@ -45,7 +46,7 @@ header.scrolled{border-bottom-color:var(--line)}
 .icon-btn svg{width:18px;height:18px}
 .spin svg{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 
-main{padding:4px 16px 0}
+main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:4px 16px 24px}
 .view{display:none}
 .view.on{display:block;animation:in .28s var(--ease)}
 @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -136,7 +137,7 @@ a.row:active,button.row:active{background:var(--line)}
 @keyframes sh{to{background-position:-200% 0}}
 
 /* tab bar */
-nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+nav{position:relative;flex:none;z-index:6;display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));
   background:color-mix(in srgb,var(--card) 80%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--line)}
 nav button{flex:1;min-width:0;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:10px;font-weight:600;color:var(--faint);position:relative;transition:color .2s}
 nav button svg{width:24px;height:24px;transition:transform .25s var(--ease)}
@@ -213,7 +214,7 @@ input{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--
 <script src="news.js"></script>
 <script src="games.js"></script>
 <script>
-const VERSION = "2.2.0";
+const VERSION = "2.2.1";
 const VAPID = "BM6HVlnasgMagsmlnud5jPzjY20I3MH2-GVLZqSRVsUsiCDNw8g4MQuhpySfI4LuaKAtWkNAZLDNNlbesr5a59M";
 const LINKS = [
   ["Nädala dashboard (claude.ai)", "https://claude.ai/artifact/5pzjCyn5wF1tJ3CCjiJXs9"],
@@ -397,11 +398,12 @@ function render(){
   ({tana:vTana,nadal:vNadal,tood:vTood,teated:vTeated,uudised:()=>News.render($("#v-uudised")),mangud:()=>Games.render($("#v-mangud"))})[(view in TITLES)?view:(view="tana")]();
   badge();
 }
-function go(v){if(v===view){scrollTo({top:0,behavior:"smooth"});return}
+const M=$("main");
+function go(v){if(v===view){M.scrollTo({top:0,behavior:"smooth"});return}
   view=v;ls.set("view",v);if(v==="teated")ls.set("seenAt",String(Math.floor(Date.now()/1000)));
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
-  scrollTo({top:0});render()}
+  M.scrollTo({top:0});render()}
 $("#tabs").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.v)};
 document.addEventListener("click",e=>{
   const pb=e.target.closest("[data-paid]");if(pb){const id=pb.dataset.paid,v=!isPaid(id);setPaid(id,v);vTana();toast(v?"Märgitud makstuks":"Märge eemaldatud");return}
@@ -411,7 +413,7 @@ document.addEventListener("click",e=>{
   const s=e.target.closest("[data-seg]");if(s){taskSeg=s.dataset.seg;ls.set("seg",taskSeg);vTood();return}
   const f=e.target.closest("[data-f]");if(f){filter=f.dataset.f;ls.set("filter",filter);vTeated();return}
 });
-addEventListener("scroll",()=>$("#hdr").classList.toggle("scrolled",scrollY>4),{passive:true});
+M.addEventListener("scroll",()=>$("#hdr").classList.toggle("scrolled",M.scrollTop>4),{passive:true});
 // swipe days in week view
 let sx=null;$("#v-nadal").addEventListener("touchstart",e=>{sx=e.touches[0].clientX},{passive:true});
 $("#v-nadal").addEventListener("touchend",e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>60){sel=addD(sel||today(),dx<0?1:-1);vNadal()}});
