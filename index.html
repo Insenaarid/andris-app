@@ -2,7 +2,7 @@
 <html lang="et">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Andrise äpp</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -27,7 +27,7 @@
 @media (prefers-color-scheme:dark){:root{
   --bg:#0d1117; --card:#161b22; --ink:#e8ecf1; --muted:#9aa4b2; --faint:#6b7480; --line:rgba(255,255,255,.08);
   --accent:#4ea1ff; --accent-soft:rgba(78,161,255,.16); --shadow:none; color-scheme:dark}}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation} /* topelttopsu ei suumi */
 /* app-shell: lehekülg ise ei keri, kerib ainult <main>. Nii ei saa iOS PWA alumist riba (position:fixed) ekraani keskele nihutada. */
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink)}
 body{font-size:15px;line-height:1.4;display:flex;flex-direction:column}
@@ -214,7 +214,7 @@ input{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--
 <script src="news.js"></script>
 <script src="games.js"></script>
 <script>
-const VERSION = "2.2.1";
+const VERSION = "2.2.2";
 const VAPID = "BM6HVlnasgMagsmlnud5jPzjY20I3MH2-GVLZqSRVsUsiCDNw8g4MQuhpySfI4LuaKAtWkNAZLDNNlbesr5a59M";
 const LINKS = [
   ["Nädala dashboard (claude.ai)", "https://claude.ai/artifact/5pzjCyn5wF1tJ3CCjiJXs9"],
